@@ -161,11 +161,7 @@ def saveCoordinatesFile(data, reference):
         pdb_file.write(reference + '\n')
         for water, coordinates in data.iteritems():
             for point in coordinates:
-                pdb_file.write("%s " % water)
-                pdb_file.write("% 7.3f " % (float(point[0])))
-                pdb_file.write("% 7.3f " % (float(point[1])))
-                pdb_file.write("% 7.3f " % (float(point[2])))
-                pdb_file.write("\n")
+                pdb_file.write("{} {: 7.3f} {: 7.3f} {: 7.3f}\n".format(water, float(point[0]), float(point[1]), float(point[2])))
 
     return filename_path
 
