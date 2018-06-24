@@ -57,6 +57,8 @@ def parseArgs():
     required.add_argument("-w", "--waters", required=True, metavar="CHAIN:ID", type=str, nargs='*', help="list of water ids")
     required.add_argument("-i", "--input", required=True, metavar="FILE", type=str, nargs='*', help="path to trajectory files")
     optional.add_argument("-R", "--radius", metavar="FLOAT", type=float, help="radius of the sphere to look for waters", default=1.5)
+    optional.add_argument("-X", "--xaxis", metavar="INTEGER [METRIC]", type=str, nargs='*', help="column number and metric to plot on the X axis", default=None)
+    optional.add_argument("-Y", "--yaxis", metavar="INTEGER [METRIC]", type=str, nargs='*', help="column number and metric to plot on the Y axis", default=None)
     parser._action_groups.append(optional)
     args = parser.parse_args()
 
@@ -72,7 +74,10 @@ def parseArgs():
 
     radius = args.radius
 
-    return reference, waters, trajectories, radius
+    x_data = args.xaxis
+    y_data = args.yaxis
+
+    return reference, waters, trajectories, radius, x_data, y_data
 
 
 def getWaterReferenceLocations(reference, waters):
@@ -157,11 +162,49 @@ def findWaterMatchs(trajectories, waters, water_locations, radius, num_waters):
     return matchs
 
 
-def scatterPlot(matchs, x_row=6, y_row=4):
+def parseAxisData(axis_data):
+    if axis_data is None:
+        return (None, None)
+    else:
+        try:
+            row = int(axis_data[0])
+        except ValueError:
+            print("Warning: axis data not recognized: {}".format(axis_data))
+            return (None, None)
+        if len(axis_data) == 1:
+            return (row, '?')
+        elif len(axis_data) == 2:
+            if "energy" in axis_data[1].lower():
+                label = axis_data[1] + " ($kcal/mol$)"
+            elif "distance" in axis_data[1].lower():
+                label = axis_data[1] + " ($\AA$)"
+            elif "rmsd" in axis_data[1].lower():
+                label = axis_data[1] + " ($\AA$)"
+            else:
+                label = axis_data[1]
+            return (row, label)
+
+        print("Warning: axis data not recognized: {}".format(axis_data))
+        return (None, None)
+
+
+
+def scatterPlot(matchs, x_row=None, y_row=None, x_name=None, y_name=None):
     x_values = []
     y_values = []
     labels = []
     annotations = []
+
+    if x_row is None:
+        x_row = 7
+        x_name = "RMSD ($\AA$)"
+    if y_row is None:
+        y_row = 5
+        y_name = "Energy ($kcal/mol$)"
+    if x_name is None:
+        x_name = '?'
+    if y_name is None:
+        y_name = '?'
 
     for traj_info, categories in matchs.iteritems():
         traj_directory, traj_number = traj_info
@@ -194,9 +237,9 @@ def scatterPlot(matchs, x_row=6, y_row=4):
     sc = pyplot.scatter(x_values, y_values, c=labels, cmap=cmap, norm=norm, alpha=0.6)
 
     ax.margins(0.05)
-    ax.set_facecolor('gray')
-    pyplot.ylabel("Energy ($kcal/mol$)")
-    pyplot.xlabel("RMSD ($\AA$)")
+    ax.set_facecolor('lightgray')
+    pyplot.ylabel(y_name)
+    pyplot.xlabel(x_name)
 
     annot = ax.annotate("", xy=(0,0), xytext=(20,20),textcoords="offset points",
                         bbox=dict(boxstyle="round", fc="w"),
@@ -234,12 +277,15 @@ def scatterPlot(matchs, x_row=6, y_row=4):
 
  
 def main():
-    reference, waters, trajectories, radius = parseArgs()
+    reference, waters, trajectories, radius, x_data, y_data = parseArgs()
     num_waters = len(waters)
     water_locations = getWaterReferenceLocations(reference, waters)
     matchs = findWaterMatchs(trajectories, waters, water_locations, radius, num_waters)
 
-    scatterPlot(matchs, x_row=4, y_row=5)
+    x_row, x_name = parseAxisData(x_data)
+    y_row, y_name = parseAxisData(y_data)
+
+    scatterPlot(matchs, x_row=x_row, y_row=y_row, x_name=x_name, y_name=y_name)
 
 
 if __name__ == "__main__":

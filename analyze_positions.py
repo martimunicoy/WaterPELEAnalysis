@@ -46,8 +46,9 @@ def analyzeData(data):
 		z_var = np.var(z)
 
 		dist = []
+		initial_point = list(map(float, data[water][0]))
 		for ind, point in enumerate(data[water]):
-			current_dist = np.linalg.norm([float(i) - j for i, j in zip(point, (x_mean, y_mean, z_mean))])
+			current_dist = np.linalg.norm([float(i) - j for i, j in zip(point, initial_point)])
 			dist.append(current_dist)
 			data[water][ind] = [x[ind], y[ind], z[ind], current_dist]
 		central_dist = np.mean(dist)
@@ -55,14 +56,18 @@ def analyzeData(data):
 		print("x:\n\t- mean     = {: 7.3f}\n\t- variance = {: 7.3f}".format(x_mean, x_var))
 		print("y:\n\t- mean     = {: 7.3f}\n\t- variance = {: 7.3f}".format(y_mean, y_var))
 		print("z:\n\t- mean     = {: 7.3f}\n\t- variance = {: 7.3f}".format(z_mean, z_var))
+		print("initial point:\n\t({: 7.3f},{: 7.3f},{: 7.3f})".format(initial_point[0], initial_point[1], initial_point[2]))
 		print("central point:\n\t({: 7.3f},{: 7.3f},{: 7.3f})".format(x_mean, y_mean, z_mean))
-		print("average distance from central point:\n\t{: 7.3f}".format(central_dist))
+		print("average distance from initial point:\n\t{: 7.3f}".format(central_dist))
 
 	return data
 
 
 def plotData(data):
-	pyplot.boxplot([[i[3] for i in data[j]] for j in data], labels=[i for i in data])
+	fig, ax = pyplot.subplots()
+	pyplot.boxplot([[i[3] for i in data[j]] for j in data], labels=[i for i in data], whis=1000)
+	ax.set_xlabel('Explicit water')
+	ax.set_ylabel('Distance from initial point ($\AA$)')
 	pyplot.show()
 
 

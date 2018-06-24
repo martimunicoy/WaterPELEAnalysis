@@ -76,8 +76,14 @@ def trackWaters(trajectories, waters):
     for water in waters:
         results[water[0] + water[1]] = []
 
+    first = True
     for trajectory in trajectories:
         with open(trajectory, 'r') as trajectory_file:
+            # Only add waters from MODEL 1 once
+            line = trajectory_file.readline()
+            while (line.strip() != "MODEL     2") and not first:
+                line = trajectory_file.readline()
+            first = False
             for line in trajectory_file:
                 if not line.startswith('HETATM'):
                     continue
