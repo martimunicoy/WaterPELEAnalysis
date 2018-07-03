@@ -22,6 +22,8 @@ def plotPosition(coordinates_file):
 
 		color_map = cm.jet
 		categories = len(names)
+		if categories == 1:
+			categories += 1
 
 		for point in points:
 			sphere_shape(radius=0.5,

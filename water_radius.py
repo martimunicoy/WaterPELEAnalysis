@@ -164,42 +164,53 @@ def findWaterMatchs(trajectories, waters, water_locations, radius, num_waters):
 
 def parseAxisData(axis_data):
     if axis_data is None:
-        return (None, None)
+        return ([None, ] , None)
     else:
         try:
-            row = int(axis_data[0])
+            rows = [int(axis_data[0]), ]
         except ValueError:
             print("Warning: axis data not recognized: {}".format(axis_data))
-            return (None, None)
+            return ([None, ], None)
         if len(axis_data) == 1:
-            return (row, '?')
-        elif len(axis_data) == 2:
-            if "energy" in axis_data[1].lower():
-                label = axis_data[1] + " ($kcal/mol$)"
-            elif "distance" in axis_data[1].lower():
-                label = axis_data[1] + " ($\AA$)"
-            elif "rmsd" in axis_data[1].lower():
-                label = axis_data[1] + " ($\AA$)"
+            return (rows, '?')
+        elif len(axis_data) > 1:
+            label_index = 1
+            while axis_data[label_index] == "+":
+                label_index += 2
+                try:
+                    rows.append(int(axis_data[2]))
+                except (ValueError, IndexError):
+                    print("Warning: axis data not recognized: {}".format(axis_data))
+                    return ([None, ], None)
+                if len(axis_data) == label_index:
+                    return (rows, '?')
+            if "energy" in axis_data[label_index].lower():
+                label = axis_data[label_index] + " ($kcal/mol$)"
+            elif "energies" in axis_data[label_index].lower():
+                label = axis_data[label_index] + " ($kcal/mol$)"
+            elif "distance" in axis_data[label_index].lower():
+                label = axis_data[label_index] + " ($\AA$)"
+            elif "rmsd" in axis_data[label_index].lower():
+                label = axis_data[label_index] + " ($\AA$)"
             else:
-                label = axis_data[1]
-            return (row, label)
+                label = axis_data[label_index]
+            return (rows, label)
 
         print("Warning: axis data not recognized: {}".format(axis_data))
-        return (None, None)
+        return ([None, ], None)
 
 
-
-def scatterPlot(matchs, x_row=None, y_row=None, x_name=None, y_name=None):
+def scatterPlot(matchs, x_rows=[None, ], y_rows=[None, ], x_name=None, y_name=None):
     x_values = []
     y_values = []
     labels = []
     annotations = []
 
-    if x_row is None:
-        x_row = 7
+    if None in x_rows:
+        x_rows = [7, ]
         x_name = "RMSD ($\AA$)"
-    if y_row is None:
-        y_row = 5
+    if None in y_rows:
+        y_rows = [5, ]
         y_name = "Energy ($kcal/mol$)"
     if x_name is None:
         x_name = '?'
@@ -215,9 +226,14 @@ def scatterPlot(matchs, x_row=None, y_row=None, x_name=None, y_name=None):
         with open(report, 'r') as report_file:
             next(report_file)
             for i, line in enumerate(report_file):
-                x_values.append(float(line.split()[x_row - 1]))
-                y_values.append(float(line.split()[y_row - 1]))
-                    
+                total = 0.
+                for x_row in x_rows:
+                    total += float(line.split()[x_row - 1])
+                x_values.append(total)
+                total = 0.
+                for y_row in y_rows:
+                    total += float(line.split()[y_row - 1])
+                y_values.append(total)
                 epoch = traj_directory
                 if not epoch.isdigit():
                     epoch = '0'
@@ -282,10 +298,10 @@ def main():
     water_locations = getWaterReferenceLocations(reference, waters)
     matchs = findWaterMatchs(trajectories, waters, water_locations, radius, num_waters)
 
-    x_row, x_name = parseAxisData(x_data)
-    y_row, y_name = parseAxisData(y_data)
+    x_rows, x_name = parseAxisData(x_data)
+    y_rows, y_name = parseAxisData(y_data)
 
-    scatterPlot(matchs, x_row=x_row, y_row=y_row, x_name=x_name, y_name=y_name)
+    scatterPlot(matchs, x_rows=x_rows, y_rows=y_rows, x_name=x_name, y_name=y_name)
 
 
 if __name__ == "__main__":
