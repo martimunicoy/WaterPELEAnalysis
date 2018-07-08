@@ -234,7 +234,7 @@ def scatterPlot(matchs, x_rows=[None, ], y_rows=[None, ], x_name=None, y_name=No
                 for y_row in y_rows:
                     total += float(line.split()[y_row - 1])
                 y_values.append(total)
-                epoch = traj_directory
+                epoch = traj_directory.split('/')[-1]
                 if not epoch.isdigit():
                     epoch = '0'
                     
