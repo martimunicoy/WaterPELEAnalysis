@@ -4,12 +4,12 @@ from __future__ import unicode_literals
 import argparse as ap
 import os
 import glob
-import numpy as np
-from sets import Set
+import sys
 import copy
-from matplotlib import pyplot, rc
-from matplotlib import patches
-import pandas as pd
+from matplotlib import pyplot, patches
+
+
+PROGRESS_BAR_WIDTH = 40
 
 
 def parseResidues(residues_to_parse):
@@ -116,7 +116,14 @@ def waterInSphere(coordinates, water_locations, radius):
 def findWaterMatches(trajectories, waters, water_locations, radius, num_waters):
     matchs = {}
 
-    for trajectory in trajectories:
+    # To know the progress status
+    total_entries = len(trajectories)
+    current_position = 0
+    sys.stdout.write("  - Progress: [%s]" % (" " * PROGRESS_BAR_WIDTH))
+    sys.stdout.flush()
+    sys.stdout.write("\b" * (PROGRESS_BAR_WIDTH + 1))
+
+    for num_entries, trajectory in enumerate(trajectories):
         traj_directory = os.path.dirname(trajectory)
         traj_number = os.path.basename(trajectory).split('_')[-1].split('.')[0]
 
@@ -156,6 +163,13 @@ def findWaterMatches(trajectories, waters, water_locations, radius, num_waters):
                         break
 
             matchs[traj_directory, traj_number][len(match_set)].append(model)
+
+        if (num_entries + 1) / float(total_entries) * PROGRESS_BAR_WIDTH > current_position:
+            current_position += 1
+            sys.stdout.write("#")
+            sys.stdout.flush()
+
+    sys.stdout.write("\n")
 
     return matchs
 
@@ -239,6 +253,8 @@ def scatterPlot(matchs, x_rows=[None, ], y_rows=[None, ], x_name=None, y_name=No
                 annotations.append("Epoch: " + epoch + "\n" + "Trajectory: " + traj_number + "\n" + "Model: " + str(i + 1))
 
                 labels.append(0)
+
+
 
         for category, models in categories.iteritems():
             for model in models:
