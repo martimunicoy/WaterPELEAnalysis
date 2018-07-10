@@ -24,14 +24,12 @@ def parseResidues(residues_to_parse):
                 waters.append((chain, residue_id))
 
     if len(waters) == 0:
-        print "Error: list of water ids is empty. No correct water ids were detected."
-        parser.print_help()
-        exit(1)
+        print "Warning: list of water ids is empty. No correct water ids were detected."
 
     return waters
 
 
-def parseTrajectories(trajectories_to_parse):
+def parseTrajectories(trajectories_to_parse, parser):
     trajectories = []
 
     for trajectory_list in trajectories_to_parse:
@@ -54,7 +52,7 @@ def parseArgs():
     optional = parser._action_groups.pop()
     required = parser.add_argument_group('required arguments')
     required.add_argument("-r", "--ref", required=True, metavar="FILE", type=str, help="path to reference structure file")
-    required.add_argument("-w", "--waters", required=True, metavar="CHAIN:ID", type=str, nargs='*', help="list of water ids")
+    required.add_argument("-w", "--waters", metavar="CHAIN:ID", type=str, nargs='*', help="list of water ids", default=[])
     required.add_argument("-i", "--input", required=True, metavar="FILE", type=str, nargs='*', help="path to trajectory files")
     optional.add_argument("-R", "--radius", metavar="FLOAT", type=float, help="radius of the sphere to look for waters", default=1.5)
     optional.add_argument("-X", "--xaxis", metavar="INTEGER [METRIC]", type=str, nargs='*', help="column number and metric to plot on the X axis", default=None)
@@ -70,7 +68,7 @@ def parseArgs():
 
     waters = parseResidues(args.waters)
 
-    trajectories = parseTrajectories(args.input)
+    trajectories = parseTrajectories(args.input, parser)
 
     radius = args.radius
 
@@ -264,7 +262,11 @@ def scatterPlot(matchs, x_rows=[None, ], y_rows=[None, ], x_name=None, y_name=No
 
     patches_list = [patches.Patch(color=cmap(norm(1)), label='No matches', alpha=0.6), ]
     for i in xrange(max(matchs.values()[0])):
-        patches_list.append(patches.Patch(color=cmap(norm(i + 2)), label='{} matches'.format(i + 1), alpha=0.6))
+        if i == 0:
+            match_str = "match"
+        else:
+            match_str = "matches"
+        patches_list.append(patches.Patch(color=cmap(norm(i + 2)), label='{} {}'.format(i + 1, match_str), alpha=0.6))
 
     ax.legend(handles=patches_list)
 
