@@ -113,7 +113,7 @@ def waterInSphere(coordinates, water_locations, radius):
     return matchs
 
 
-def findWaterMatchs(trajectories, waters, water_locations, radius, num_waters):
+def findWaterMatches(trajectories, waters, water_locations, radius, num_waters):
     matchs = {}
 
     for trajectory in trajectories:
@@ -235,7 +235,7 @@ def scatterPlot(matchs, x_rows=[None, ], y_rows=[None, ], x_name=None, y_name=No
                 epoch = traj_directory.split('/')[-1]
                 if not epoch.isdigit():
                     epoch = '0'
-                    
+
                 annotations.append("Epoch: " + epoch + "\n" + "Trajectory: " + traj_number + "\n" + "Model: " + str(i + 1))
 
                 labels.append(0)
@@ -293,16 +293,22 @@ def scatterPlot(matchs, x_rows=[None, ], y_rows=[None, ], x_name=None, y_name=No
 
     pyplot.show()
 
- 
+
 def main():
     reference, waters, trajectories, radius, x_data, y_data = parseArgs()
     num_waters = len(waters)
+    print "{} water positions are going to be analyzed".format(num_waters)
+
+    print " - Tracking waters...".format(num_waters)
     water_locations = getWaterReferenceLocations(reference, waters)
-    matchs = findWaterMatchs(trajectories, waters, water_locations, radius, num_waters)
+
+    print " - Finding matches..."
+    matchs = findWaterMatches(trajectories, waters, water_locations, radius, num_waters)
 
     x_rows, x_name = parseAxisData(x_data)
     y_rows, y_name = parseAxisData(y_data)
 
+    print " - Plotting..."
     scatterPlot(matchs, x_rows=x_rows, y_rows=y_rows, x_name=x_name, y_name=y_name)
 
 
