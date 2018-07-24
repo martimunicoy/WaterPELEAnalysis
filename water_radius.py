@@ -152,6 +152,8 @@ def findWaterMatches(trajectories, waters, water_locations, radius, num_waters):
 
         for model, water_matchs in results.iteritems():
             sorted_waters = sorted(water_matchs, key=lambda k: len(water_matchs[k]), reverse=True)
+            if len(water_matchs) == 0:
+                continue
             if len(water_matchs[sorted_waters[0]]) == 0:
                 continue
 
