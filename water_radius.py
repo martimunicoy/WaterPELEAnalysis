@@ -7,9 +7,11 @@ import glob
 import sys
 import copy
 from matplotlib import pyplot, patches
+from math import isnan
 
 
 PROGRESS_BAR_WIDTH = 40
+REPORT_NAME = "run_report"
 
 
 def parseResidues(residues_to_parse):
@@ -57,6 +59,7 @@ def parseArgs():
     optional.add_argument("-R", "--radius", metavar="FLOAT", type=float, help="radius of the sphere to look for waters", default=1.5)
     optional.add_argument("-X", "--xaxis", metavar="INTEGER [METRIC]", type=str, nargs='*', help="column number and metric to plot on the X axis", default=None)
     optional.add_argument("-Y", "--yaxis", metavar="INTEGER [METRIC]", type=str, nargs='*', help="column number and metric to plot on the Y axis", default=None)
+    optional.add_argument("-o", "--output", metavar="PATH", type=str, help="output path to save figure", default=None)
     parser._action_groups.append(optional)
     args = parser.parse_args()
 
@@ -75,8 +78,9 @@ def parseArgs():
     x_data = args.xaxis
     y_data = args.yaxis
 
-    return reference, waters, trajectories, radius, x_data, y_data
+    output_path = args.output
 
+    return reference, waters, trajectories, radius, x_data, y_data, output_path
 
 def getWaterReferenceLocations(reference, waters):
     water_locations = []
@@ -145,17 +149,10 @@ def findWaterMatches(trajectories, waters, water_locations, radius, num_waters):
                 coordinates = fields[6:9]
                 results[model][fields[4] + fields[5]] = waterInSphere(coordinates, water_locations, radius)
 
-        matchs[traj_directory, traj_number] = {}
-
-        for i in xrange(num_waters + 1):
-            matchs[traj_directory, traj_number][i] = []
+        matchs[traj_directory, traj_number] = []
 
         for model, water_matchs in results.iteritems():
             sorted_waters = sorted(water_matchs, key=lambda k: len(water_matchs[k]), reverse=True)
-            if len(water_matchs) == 0:
-                continue
-            if len(water_matchs[sorted_waters[0]]) == 0:
-                continue
 
             match_set = []
             for water in sorted_waters:
@@ -164,7 +161,7 @@ def findWaterMatches(trajectories, waters, water_locations, radius, num_waters):
                         match_set.append(match)
                         break
 
-            matchs[traj_directory, traj_number][len(match_set)].append(model)
+            matchs[traj_directory, traj_number].append(len(match_set))
 
         if (num_entries + 1) / float(total_entries) * PROGRESS_BAR_WIDTH > current_position:
             current_position += 1
@@ -214,7 +211,7 @@ def parseAxisData(axis_data):
         return ([None, ], None)
 
 
-def scatterPlot(matchs, x_rows=[None, ], y_rows=[None, ], x_name=None, y_name=None):
+def scatterPlot(matchs, x_rows=[None, ], y_rows=[None, ], x_name=None, y_name=None, output_path=None):
     x_values = []
     y_values = []
     labels = []
@@ -235,41 +232,50 @@ def scatterPlot(matchs, x_rows=[None, ], y_rows=[None, ], x_name=None, y_name=No
         traj_directory, traj_number = traj_info
         labels_size = len(labels)
 
-        report = traj_directory + "/report_" + traj_number
+        report = traj_directory + "/" + REPORT_NAME + "_" + traj_number
+
+        index = 0
 
         with open(report, 'r') as report_file:
             next(report_file)
             for i, line in enumerate(report_file):
-                total = 0.
+                x_total = 0.
+                y_total = 0.
+
                 for x_row in x_rows:
-                    total += float(line.split()[x_row - 1])
-                x_values.append(total)
-                total = 0.
+                    x_total += float(line.split()[x_row - 1])
+
                 for y_row in y_rows:
-                    total += float(line.split()[y_row - 1])
-                y_values.append(total)
+                    y_total += float(line.split()[y_row - 1])
+
+                if isnan(x_total) or isnan(y_total):
+                    continue
+
+                x_values.append(x_total)
+                y_values.append(y_total)
+
                 epoch = traj_directory.split('/')[-1]
                 if not epoch.isdigit():
                     epoch = '0'
 
                 annotations.append("Epoch: " + epoch + "\n" + "Trajectory: " + traj_number + "\n" + "Model: " + str(i + 1))
 
-                labels.append(0)
+                labels.append(categories[i])
 
-
-
-        for category, models in categories.iteritems():
-            for model in models:
-                labels[labels_size + model - 1] = category + 1
-
-    norm = pyplot.Normalize(1, max(matchs.values()[0]) + 1)
+    norm = pyplot.Normalize(0, max(labels))
     cmap = pyplot.cm.RdYlGn
 
     fig, ax = pyplot.subplots()
-    sc = pyplot.scatter(x_values, y_values, c=labels, cmap=cmap, norm=norm, alpha=0.6)
+
+    if output_path is not None:
+        s = 20
+    else:
+        s = None
+
+    sc = pyplot.scatter(x_values, y_values, c=labels, cmap=cmap, s=s, norm=norm, alpha=0.6)
 
     ax.margins(0.05)
-    ax.set_facecolor('lightgray')
+    ax.set_facecolor('gray')
     pyplot.ylabel(y_name)
     pyplot.xlabel(x_name)
 
@@ -278,13 +284,13 @@ def scatterPlot(matchs, x_rows=[None, ], y_rows=[None, ], x_name=None, y_name=No
                         arrowprops=dict(arrowstyle="->"))
     annot.set_visible(False)
 
-    patches_list = [patches.Patch(color=cmap(norm(1)), label='No matches', alpha=0.6), ]
-    for i in xrange(max(matchs.values()[0])):
+    patches_list = [patches.Patch(color=cmap(norm(0)), label='No matches', alpha=0.6), ]
+    for i in xrange(max(labels)):
         if i == 0:
             match_str = "match"
         else:
             match_str = "matches"
-        patches_list.append(patches.Patch(color=cmap(norm(i + 2)), label='{} {}'.format(i + 1, match_str), alpha=0.6))
+        patches_list.append(patches.Patch(color=cmap(norm(i + 1)), label='{} {}'.format(i + 1, match_str), alpha=0.6))
 
     ax.legend(handles=patches_list)
 
@@ -309,11 +315,14 @@ def scatterPlot(matchs, x_rows=[None, ], y_rows=[None, ], x_name=None, y_name=No
 
     fig.canvas.mpl_connect("motion_notify_event", hover)
 
-    pyplot.show()
+    if output_path is not None:
+        pyplot.savefig(output_path)
+    else:
+        pyplot.show()
 
 
 def main():
-    reference, waters, trajectories, radius, x_data, y_data = parseArgs()
+    reference, waters, trajectories, radius, x_data, y_data, output_path = parseArgs()
     num_waters = len(waters)
     print "{} water positions are going to be analyzed".format(num_waters)
 
@@ -327,7 +336,7 @@ def main():
     y_rows, y_name = parseAxisData(y_data)
 
     print " - Plotting..."
-    scatterPlot(matchs, x_rows=x_rows, y_rows=y_rows, x_name=x_name, y_name=y_name)
+    scatterPlot(matchs, x_rows=x_rows, y_rows=y_rows, x_name=x_name, y_name=y_name, output_path=output_path)
 
 
 if __name__ == "__main__":

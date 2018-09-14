@@ -81,7 +81,7 @@ def trackWaters(trajectories, waters):
         with open(trajectory, 'r') as trajectory_file:
             # Only add waters from MODEL 1 once
             line = trajectory_file.readline()
-            while (line.strip() != "MODEL     2") and not first:
+            while (line.strip() != "MODEL     2") and not first and line!="":
                 line = trajectory_file.readline()
             first = False
             for line in trajectory_file:
