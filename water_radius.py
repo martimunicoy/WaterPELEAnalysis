@@ -60,6 +60,7 @@ def parseArgs():
     optional.add_argument("-X", "--xaxis", metavar="INTEGER [METRIC]", type=str, nargs='*', help="column number and metric to plot on the X axis", default=None)
     optional.add_argument("-Y", "--yaxis", metavar="INTEGER [METRIC]", type=str, nargs='*', help="column number and metric to plot on the Y axis", default=None)
     optional.add_argument("-o", "--output", metavar="PATH", type=str, help="output path to save figure", default=None)
+    optional.add_argument("-rp", "--report", metavar="PATH", type=str, help="Report file name", default=REPORT_NAME)
     parser._action_groups.append(optional)
     args = parser.parse_args()
 
@@ -78,9 +79,11 @@ def parseArgs():
     x_data = args.xaxis
     y_data = args.yaxis
 
+    report_name = args.report
+
     output_path = args.output
 
-    return reference, waters, trajectories, radius, x_data, y_data, output_path
+    return reference, waters, trajectories, radius, x_data, y_data, output_path, report_name
 
 def getWaterReferenceLocations(reference, waters):
     water_locations = []
@@ -211,7 +214,7 @@ def parseAxisData(axis_data):
         return ([None, ], None)
 
 
-def scatterPlot(matchs, x_rows=[None, ], y_rows=[None, ], x_name=None, y_name=None, output_path=None):
+def scatterPlot(matchs, x_rows=[None, ], y_rows=[None, ], x_name=None, y_name=None, output_path=None, report_name = None):
     x_values = []
     y_values = []
     labels = []
@@ -232,7 +235,7 @@ def scatterPlot(matchs, x_rows=[None, ], y_rows=[None, ], x_name=None, y_name=No
         traj_directory, traj_number = traj_info
         labels_size = len(labels)
 
-        report = traj_directory + "/" + REPORT_NAME + "_" + traj_number
+        report = traj_directory + "/" + report_name + "_" + traj_number
 
         index = 0
 
@@ -322,7 +325,8 @@ def scatterPlot(matchs, x_rows=[None, ], y_rows=[None, ], x_name=None, y_name=No
 
 
 def main():
-    reference, waters, trajectories, radius, x_data, y_data, output_path = parseArgs()
+    reference, waters, trajectories, radius, x_data, y_data, output_path, report = parseArgs()
+
     num_waters = len(waters)
     print "{} water positions are going to be analyzed".format(num_waters)
 
@@ -336,7 +340,7 @@ def main():
     y_rows, y_name = parseAxisData(y_data)
 
     print " - Plotting..."
-    scatterPlot(matchs, x_rows=x_rows, y_rows=y_rows, x_name=x_name, y_name=y_name, output_path=output_path)
+    scatterPlot(matchs, x_rows=x_rows, y_rows=y_rows, x_name=x_name, y_name=y_name, output_path=output_path, report_name=report)
 
 
 if __name__ == "__main__":
